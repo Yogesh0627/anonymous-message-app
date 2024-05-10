@@ -166,7 +166,7 @@ export default function SignIn() {
           name="confirmPassword"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Password</FormLabel>
+              <FormLabel>Confirm Password</FormLabel>
               <FormControl>
                 <Input placeholder="Confirm Password"
                 type="password"
