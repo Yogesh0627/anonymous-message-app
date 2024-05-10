@@ -21,6 +21,7 @@ import { emailValidficationSchema, forgotPasswordValidationSchema } from "@/inpu
 import { ApiResponse } from "@/types/APIResponse";
 import { zodResolver } from "@hookform/resolvers/zod";
 import axios, { AxiosError } from "axios";
+import { Loader2 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import React, { useState } from "react";
@@ -31,7 +32,7 @@ const ForgotPassword = () => {
   const { toast } = useToast();
   const router = useRouter();
   const [isVerify,setIsVerify] = useState(false)
-
+  const [isSubmitting,setIsSubmitting] = useState(false)
   const emailForm = useForm<z.infer<typeof emailValidficationSchema>>({
     resolver: zodResolver(emailValidficationSchema),
     defaultValues: {
@@ -50,6 +51,7 @@ const ForgotPassword = () => {
 
 
   const checkVerification = async({email}:z.infer<typeof emailValidficationSchema>)=>{
+    setIsSubmitting(true)
     try {
         const response = await axios.get(`/api/forgot-password?email=${email}`)
 
@@ -68,12 +70,14 @@ const ForgotPassword = () => {
         toast({
           title:"Verification Failed",
           description:errorMessage  })
+    }finally{
+      setIsSubmitting(false)
     }
   }
 
   const onSubmit = async (data: z.infer<typeof forgotPasswordValidationSchema>) => {
 
-
+      setIsSubmitting(true)
 
     try {
       const response = await axios.post<ApiResponse>(`/api/forgot-password`, {
@@ -96,6 +100,8 @@ const ForgotPassword = () => {
         title: "Verificaiton Failed",
         description: errorMessage,
       });
+    }finally{
+      setIsSubmitting(false)
     }
   };
   return (
@@ -185,7 +191,11 @@ const ForgotPassword = () => {
                               </FormItem>
                             )}
                           />
-                          <Button type="submit">Reset</Button>
+                          <Button type="submit" disabled = {
+                            isSubmitting}>{isSubmitting? (<><Loader2 
+                            className="mr-2 h-4 w-4 animate-spin"/> 
+                            Please Wait</>):"Change Password"}
+                          </Button>
                         </form>
                       </Form>
                 
@@ -231,7 +241,11 @@ const ForgotPassword = () => {
                 </FormItem>
               )}
             />
-            <Button type="submit">Verify</Button>
+            <Button type="submit" disabled = {
+          isSubmitting}>{isSubmitting? (<><Loader2 
+            className="mr-2 h-4 w-4 animate-spin"/> 
+            Please Wait</>):"Submit"}
+        </Button>
           </form>
         </Form>
   

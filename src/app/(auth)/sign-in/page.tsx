@@ -35,8 +35,10 @@ export default function SignIn() {
 
   const onSubmit = async (data:z.infer<typeof signinValidationSchema>)=>{
     // console.log(data)
+    setIsSubmitting(true)
     const result = await signIn("credentials",{email:data.email,password:data.password,redirect:false})
     // console.log(result)
+    setIsSubmitting(false)
     if (result?.error) {
       if (result.error === 'CredentialsSignin') {
         toast({
