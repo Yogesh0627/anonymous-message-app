@@ -64,6 +64,7 @@ const Dashboard = (props: Props) => {
     try {
       const response = await axios.get<ApiResponse>(`/api/get-messages`)
       // console.log(response.data.messages)
+      // console.log(response)
       setMessages(response.data.messages || [])
       
       if(refresh){

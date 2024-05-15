@@ -13,7 +13,7 @@ export const forgotPasswordValidationSchema = z.object({
   confirmPassword: z
     .string()
     .min(6, "Password should be minimum 6 characters long")
-    .max(15, "Password should be maximum 10 characters long")
+    .max(15, "Password should be maximum 15 characters long")
 }).refine((data)=>data.newPassword===data.confirmPassword,{
     message:"Password doesn't match",
     path:["confirmPassword"]

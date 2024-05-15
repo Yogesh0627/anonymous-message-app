@@ -30,15 +30,15 @@ export async function GET(request:NextRequest){
         // console.log(user,"user from get messages")
         if(!user || user.length === 0){
             // console.log("Failed to get-messages")
-            return NextResponse.json({success:false,msg:"user not found / No messages found yet"},{status:404})
+            return NextResponse.json({success:false,message:"User not found / No messages found "},{status:404})
     
         }
-        return NextResponse.json({success:true,messages:user[0].messages},{status:200})
+        return NextResponse.json({success:true,message:"fetched messages",messages:user[0].messages},{status:200})
 
     } catch (error:any) {
         // console.log("Failed to get-messages")
         // console.log(`error from, get-messages`,error.message)
-        return NextResponse.json({success:false,msg:"Failed to get-messages"},{status:404})
+        return NextResponse.json({success:false,message:"Internal server error"},{status:504})
 
     }
 }

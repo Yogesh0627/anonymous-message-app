@@ -64,6 +64,11 @@ export default function SignIn() {
     }
 
   }
+
+  const handleGuestLogin = ()=>{
+    form.setValue("email","chauhanyogesh950@gmail.com")
+    form.setValue("password","Yogesh@123")
+  }
   return <>
   <div className="flex justify-center items-center min-h-screen bg-gray-100">
     <div className="w-full max-w-md p-8 space-y-8 bg-white rounded-lg shadow-md">
@@ -118,15 +123,21 @@ export default function SignIn() {
             className="mr-2 h-4 w-4 animate-spin"/> 
             Please Wait</>):"Sign in"}
         </Button>
+
+        <Button type="button" onClick={handleGuestLogin} className="ml-4" disabled = {
+          isSubmitting}>Guest Login
+        </Button>
+        {/* adding guest login for users testing  */}
         </form>
       </Form>
+
       <div>
         <p>Create an account? {(' ')}
           <Link href="/sign-up" className="text-blue-600 hover:text-blue-800">
           Sign Up
           </Link>
         </p>
-        <p className="mt-2 text-sm">{<Link href={'/forgot-password'}>Forgot Password</Link>}</p>
+        <p className="mt-2 text-sm ">{<Link href={'/forgot-password'} className="text-blue-600 hover:text-blue-800">Forgot Password</Link>}</p>
       </div>
     </div>
 

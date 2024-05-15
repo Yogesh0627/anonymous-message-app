@@ -22,6 +22,7 @@ import { z } from "zod";
 import Link from "next/link";
 import { Separator } from "@/components/ui/separator";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { useSession } from "next-auth/react";
 
 
 const initialMessages:string = "which Anime you love to watch ? || which character is your favorite among them ?|| what you do in your free time ?"
@@ -31,6 +32,8 @@ const initialMessageArray = (initialMessages:string):string[]=>{
 const UserPage = ({ params }: { params: { username: string } }) =>{
 
   const [isLoading, setIsLoading] = useState<boolean>(false);
+
+  const {data:session} = useSession()
 
   const { username } = params;
   const { toast } = useToast();
@@ -179,9 +182,9 @@ const UserPage = ({ params }: { params: { username: string } }) =>{
       </div>
       <Separator className="my-6" />
       <div className="text-center">
-        <div className="mb-4">Get Your Message Board</div>
+        <div className="mb-4">{session ? 'Go to your Dashboard' : 'Get Your Message Board'}</div>
         <Link href={'/sign-up'}>
-          <Button>Create Your Account</Button>
+          <Button>{session ? 'Dashboard' : 'Create Your Account'}</Button>
         </Link>
       </div>
     </div>
