@@ -5,7 +5,7 @@ import UserModel from "@/models/user";
 import { NextRequest, NextResponse } from "next/server";
 import { enforceRateLimit } from "@/lib/rateLimit";
 
-export const dynamic = "force-dynamic";
+export const dynamic = "force-dynamic"
 
 export async function GET(request:NextRequest,response:NextResponse){
 
