@@ -5,6 +5,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 
 
+export const dynamic = "force-dynamic"
+
 const usernameQuerySchema = z.object({username:usernameValidation})
 
 export async function GET(request:Request){

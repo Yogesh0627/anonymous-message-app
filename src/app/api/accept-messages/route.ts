@@ -4,6 +4,8 @@ import { authOptions } from "../auth/[...nextauth]/options";
 import { NextRequest, NextResponse } from "next/server";
 import UserModel from '@/models/user';
 
+export const dynamic = "force-dynamic"
+
 export async function POST(request:NextRequest){
     await connectDB()
 
