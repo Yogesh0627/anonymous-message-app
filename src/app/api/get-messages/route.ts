@@ -5,40 +5,67 @@ import { NextRequest, NextResponse } from "next/server";
 import UserModel from '@/models/user';
 import mongoose from 'mongoose';
 
-
-export async function GET(request:NextRequest){
+export async function GET(request: NextRequest) {
     await connectDB()
 
     const session = await getServerSession(authOptions)
+    const user = session?.user as User
 
-    const user:User = session?.user as User //assertion as User
-    // console.log(user ,"user from get messages")
-    if(!session || !session?.user){
-        return NextResponse.json({success:false,msg:"Not Authorized"},{status:500})
+    if (!session || !user) {
+        return NextResponse.json(
+            { success: false, message: "Not authenticated" },
+            { status: 401 }
+        )
     }
 
     const userId = new mongoose.Types.ObjectId(user._id)
 
+    // Sorting + pagination controls (safe defaults, bounded).
+    const { searchParams } = new URL(request.url)
+    const sortDir = searchParams.get('sort') === 'oldest' ? 1 : -1
+    const page = Math.max(1, Number(searchParams.get('page') ?? '1') || 1)
+    const limit = Math.min(50, Math.max(1, Number(searchParams.get('limit') ?? '6') || 6))
+    const skip = (page - 1) * limit
+
     try {
-        const user = await UserModel.aggregate([
-            {$match:{_id:userId}},
-            {$unwind:'$messages'},
-            {$sort:{'messages.createdAt':-1}},
-            {$group:{_id:'$_id',messages:{$push:"$messages"}}}
+        const [result] = await UserModel.aggregate([
+            { $match: { _id: userId } },
+            { $project: { messages: { $ifNull: ['$messages', []] } } },
+            { $unwind: '$messages' },
+            { $sort: { 'messages.createdAt': sortDir } },
+            {
+                $facet: {
+                    // Page slice — projected to safe fields only (senderId is never
+                    // exposed to the recipient).
+                    data: [
+                        { $skip: skip },
+                        { $limit: limit },
+                        {
+                            $replaceRoot: {
+                                newRoot: {
+                                    _id: '$messages._id',
+                                    content: '$messages.content',
+                                    createdAt: '$messages.createdAt',
+                                },
+                            },
+                        },
+                    ],
+                    meta: [{ $count: 'total' }],
+                },
+            },
         ])
 
-        // console.log(user,"user from get messages")
-        if(!user || user.length === 0){
-            // console.log("Failed to get-messages")
-            return NextResponse.json({success:false,message:"User not found / No messages found "},{status:404})
-    
-        }
-        return NextResponse.json({success:true,message:"fetched messages",messages:user[0].messages},{status:200})
+        const messages = result?.data ?? []
+        const total = result?.meta?.[0]?.total ?? 0
 
-    } catch (error:any) {
-        // console.log("Failed to get-messages")
-        // console.log(`error from, get-messages`,error.message)
-        return NextResponse.json({success:false,message:"Internal server error"},{status:504})
-
+        return NextResponse.json(
+            { success: true, message: "Messages fetched", messages, total, page, pageSize: limit },
+            { status: 200 }
+        )
+    } catch (error) {
+        return NextResponse.json(
+            { success: false, message: "Internal server error" },
+            { status: 500 }
+        )
     }
 }

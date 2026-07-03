@@ -1,4 +1,5 @@
 import { resend } from "@/lib/resend";
+import { env } from "@/lib/env";
 import VerificationEmail from "../../emails/verificationEmail";
 import { ApiResponse } from '@/types/APIResponse';
 
@@ -9,9 +10,9 @@ export async function sendVerificationEmail(
 ): Promise<ApiResponse> {
   try {
     await resend.emails.send({
-      from: 'onboarding@resend.dev',
+      from: env.EMAIL_FROM,
       to: email,
-      subject: 'Mystery Message Verification Code',
+      subject: 'Candor Verification Code',
       react: VerificationEmail({ username, otp: verifyCode }),
     });
     return { success: true, message: 'Verification email sent successfully.' };

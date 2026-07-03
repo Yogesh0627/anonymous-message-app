@@ -38,7 +38,10 @@ export async function GET(request:Request){
 
         const {username} = result.data
 
-        const isUnique = await UserModel.findOne({username,isVerified:true})
+        // Taken if it's an active username or reserved in someone's history.
+        const isUnique = await UserModel.findOne({
+            $or: [{ username, isVerified: true }, { previousUsernames: username }],
+        })
 
         if(isUnique){
             return Response.json({success:false,message:"username already taken"},{status:400})

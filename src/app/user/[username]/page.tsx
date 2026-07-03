@@ -14,8 +14,7 @@ import { messageValidationSchema } from "@/inputValidations/messageSchema";
 import { ApiResponse } from "@/types/APIResponse";
 import { zodResolver } from "@hookform/resolvers/zod";
 import axios, { AxiosError } from "axios";
-import { Loader2 } from "lucide-react";
-import {useCompletion} from "ai/react"
+import { Loader2, Sparkles, X } from "lucide-react";
 import React, { useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
@@ -23,30 +22,23 @@ import Link from "next/link";
 import { Separator } from "@/components/ui/separator";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { useSession } from "next-auth/react";
+import FeedbackComposer from "@/components/FeedbackComposer";
 
+const DEFAULT_SUGGESTIONS = [
+  "which Anime you love to watch ?",
+  "which character is your favorite among them ?",
+  "what you do in your free time ?",
+];
 
-const initialMessages:string = "which Anime you love to watch ? || which character is your favorite among them ?|| what you do in your free time ?"
-const initialMessageArray = (initialMessages:string):string[]=>{
-  return initialMessages.split("||")
-} 
 const UserPage = ({ params }: { params: { username: string } }) =>{
 
   const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [composerOpen, setComposerOpen] = useState<boolean>(false);
 
   const {data:session} = useSession()
 
   const { username } = params;
   const { toast } = useToast();
-
-  const {
-    complete,
-    completion,
-    isLoading: isSuggestLoading,
-    error,
-  } = useCompletion({
-    api: '/api/suggest-messages',
-    initialCompletion: initialMessages,
-  });
 
   const form = useForm<z.infer<typeof messageValidationSchema>>({
     resolver: zodResolver(messageValidationSchema),
@@ -83,34 +75,41 @@ const UserPage = ({ params }: { params: { username: string } }) =>{
       setIsLoading(false);
     }
   };
-  const fetchSuggestMessages = async () => {
-    try {
-      toast({
-        title:"Feature Not Added Yet",
-        description:"This feature will add soon till then kindly send self written messages",
-        variant:"default"
-      })
-      // complete('');
-      return
-    } catch (error) {
-      // console.error('Error fetching messages:', error);
-      toast({
-        title:"Feature Not Added Yet",
-        description:"This feature will add soon till then kindly send self written messages",
-        variant:"default"
-      })
-      // Handle error appropriately
-    }
-  };
-
-  const handleMessageClick = (message:string)=>{
-    form.setValue("content",message)
-  }
   return (
-    <div className="container mx-auto my-8 p-6 bg-white rounded max-w-4xl">
+    <div className="container mx-auto my-8 p-6 bg-card rounded max-w-4xl">
     <h1 className="text-4xl font-bold mb-6 text-center">
       Public Profile Link
     </h1>
+
+    {composerOpen && (
+      <div
+        className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+        onClick={() => setComposerOpen(false)}
+        role="dialog"
+        aria-modal="true"
+      >
+        <div
+          className="relative w-full max-w-xl max-h-[90vh] overflow-y-auto rounded-xl bg-card shadow-2xl"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <button
+            type="button"
+            onClick={() => setComposerOpen(false)}
+            className="absolute right-3 top-3 z-10 rounded-full p-1 text-muted-foreground hover:bg-muted hover:text-muted-foreground"
+            aria-label="Close"
+          >
+            <X className="h-5 w-5" />
+          </button>
+          <FeedbackComposer
+            onUseDraft={(text) => {
+              form.setValue("content", text, { shouldValidate: true });
+              setComposerOpen(false);
+            }}
+          />
+        </div>
+      </div>
+    )}
+
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
         <FormField
@@ -146,37 +145,30 @@ const UserPage = ({ params }: { params: { username: string } }) =>{
 
 
     <div className="space-y-4 my-8">
-        <div className="space-y-2">
-          <Button
-            onClick={fetchSuggestMessages}
-            className="my-4"
-            disabled={isSuggestLoading}
-          >
-            Suggest Messages
+        <div className="flex flex-col items-center gap-2">
+          <Button type="button" onClick={() => setComposerOpen(true)}>
+            <Sparkles className="w-4 h-4 mr-2" /> Suggest Messages
           </Button>
-          <p>Click on any message below to select it.</p>
+          <p className="text-sm text-muted-foreground">
+            Let AI help you turn rough thoughts into clear feedback — or pick a starter below.
+          </p>
         </div>
         <Card>
           <CardHeader>
             <h3 className="text-xl font-semibold">Messages</h3>
           </CardHeader>
           <CardContent className="flex flex-col space-y-4">
-            {error ? (
-              // <>Error occured</>
-              <>This feature has not been added yet, till then kindly send self written messages</>
-              // <p className="text-red-500">{error.message}</p>
-            ) : (
-              initialMessageArray(completion).map((message, index) => (
-                <Button
-                  key={index}
-                  variant="outline"
-                  className="mb-2"
-                  onClick={() => handleMessageClick(message)}
-                >
-                  {message}
-                </Button>
-              ))
-            )}
+            <p className="text-sm text-muted-foreground">Click on any message below to select it.</p>
+            {DEFAULT_SUGGESTIONS.map((message, index) => (
+              <Button
+                key={index}
+                variant="outline"
+                className="mb-2"
+                onClick={() => form.setValue("content", message, { shouldValidate: true })}
+              >
+                {message}
+              </Button>
+            ))}
           </CardContent>
         </Card>
       </div>

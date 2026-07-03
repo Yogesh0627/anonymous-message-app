@@ -3,8 +3,12 @@ import { connectDB } from "@/dbConfig/db";
 import { sendForgotPasswordEmail } from "@/helpers/sendForgotPasswordEmail";
 import UserModel from "@/models/user";
 import { NextRequest, NextResponse } from "next/server";
+import { enforceRateLimit } from "@/lib/rateLimit";
 
 export async function GET(request:NextRequest,response:NextResponse){
+
+    const limited = await enforceRateLimit(request, "forgot-password", { limit: 5, windowMs: 60 * 60_000 })
+    if (limited) return limited
 
     await connectDB()
     try {

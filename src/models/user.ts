@@ -6,6 +6,10 @@ import { string } from "zod"
 
 export interface Message extends Document{
     content:string,
+    // Attribution for a logged-in sender. Hidden from the recipient; used only
+    // for crediting and loop-back confirmation. Absent for anonymous (logged-out)
+    // senders. See DESIGN.md §12.
+    senderId?:mongoose.Types.ObjectId,
     createdAt:Date
 }
 
@@ -13,6 +17,11 @@ const messageSchema:Schema<Message> = new Schema({
     content:{
         type:String,
         required:true
+    },
+    senderId:{
+        type:Schema.Types.ObjectId,
+        ref:'users',
+        required:false
     },
     createdAt:{
         type:Date,
@@ -23,6 +32,11 @@ const messageSchema:Schema<Message> = new Schema({
 
 export interface User extends Document{
     username:string
+    // Names this user previously held. Kept reserved so nobody else can claim
+    // them, and used to keep old public links (/user/<oldname>) working.
+    previousUsernames:string[],
+    // Timestamps of past username changes — used to enforce a rolling yearly cap.
+    usernameChanges:Date[],
     password:string,
     email:string,
     verificationCode:string,
@@ -31,6 +45,9 @@ export interface User extends Document{
     forgotPasswordExpiry:Date,
     isVerified:boolean
     isAcceptingMessage:boolean,
+    credits:number,
+    role:'user'|'admin',
+    isBanned:boolean,
     messages:Message[]
 }
 
@@ -40,6 +57,15 @@ const userSchema:Schema<User>= new Schema({
         required:[true,"Username is required"],
         trim:true,
         unique:true
+    },
+    previousUsernames:{
+        type:[String],
+        default:[],
+        index:true
+    },
+    usernameChanges:{
+        type:[Date],
+        default:[]
     },
     password:{
         type:String,
@@ -76,6 +102,19 @@ const userSchema:Schema<User>= new Schema({
     isAcceptingMessage:{
         type:Boolean,
         default:true
+    },
+    credits:{
+        type:Number,
+        default:0
+    },
+    role:{
+        type:String,
+        enum:['user','admin'],
+        default:'user'
+    },
+    isBanned:{
+        type:Boolean,
+        default:false
     },
     messages:[messageSchema]
 })

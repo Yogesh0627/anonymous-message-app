@@ -1,8 +1,16 @@
-import UserModel, { Message } from './../../../models/user';
+import UserModel from './../../../models/user';
 import { connectDB } from "@/dbConfig/db";
 import { NextRequest, NextResponse } from "next/server";
+import { enforceRateLimit } from "@/lib/rateLimit";
 
 export async function POST(request:NextRequest){
+
+    // Prevent brute-forcing the 6-digit code.
+    const limited = await enforceRateLimit(request, "verify-code", {
+        limit: 10,
+        windowMs: 10 * 60_000,
+    })
+    if (limited) return limited
 
     await connectDB()
 

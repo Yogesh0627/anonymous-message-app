@@ -1,21 +1,31 @@
 {
-  "name": "next-chai-anonymus-message",
+  "name": "candor",
   "version": "0.1.0",
   "private": true,
   "scripts": {
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:e2e": "playwright test",
+    "seed:roadmap": "node scripts/seedRoadmap.mjs",
+    "seed:guest": "node scripts/seedGuest.mjs",
+    "seed:feedback": "node scripts/seedFeedback.mjs"
   },
   "dependencies": {
+    "@ai-sdk/google": "^0.0.52",
     "@hookform/resolvers": "^3.3.4",
     "@radix-ui/react-alert-dialog": "^1.0.5",
     "@radix-ui/react-label": "^2.0.2",
+    "@radix-ui/react-select": "^2.3.2",
     "@radix-ui/react-separator": "^1.0.3",
     "@radix-ui/react-slot": "^1.0.2",
     "@radix-ui/react-switch": "^1.0.3",
     "@radix-ui/react-toast": "^1.1.5",
+    "@radix-ui/react-tooltip": "^1.2.11",
     "@react-email/components": "0.0.16",
     "@react-email/font": "0.0.5",
     "@react-email/head": "0.0.7",
@@ -25,7 +35,7 @@
     "@react-email/row": "0.0.7",
     "@react-email/section": "0.0.11",
     "@react-email/text": "0.0.7",
-    "ai": "^3.0.24",
+    "ai": "^3.4.0",
     "axios": "^1.6.8",
     "bcryptjs": "^2.4.3",
     "class-variance-authority": "^0.7.0",
@@ -39,7 +49,7 @@
     "mongoose": "^8.3.1",
     "next": "14.2.1",
     "next-auth": "^4.24.7",
-    "openai": "^4.38.0",
+    "next-themes": "^0.4.6",
     "react": "^18",
     "react-dom": "^18",
     "react-email": "2.1.1",
@@ -48,9 +58,10 @@
     "tailwind-merge": "^2.3.0",
     "tailwindcss-animate": "^1.0.7",
     "usehooks-ts": "^3.1.0",
-    "zod": "^3.23.3"
+    "zod": "^3.25.76"
   },
   "devDependencies": {
+    "@playwright/test": "^1.48.0",
     "@types/bcryptjs": "^2.4.6",
     "@types/node": "^20",
     "@types/react": "^18",
@@ -59,6 +70,8 @@
     "eslint-config-next": "14.2.1",
     "postcss": "^8",
     "tailwindcss": "^3.4.1",
-    "typescript": "^5"
+    "typescript": "^5",
+    "vite-tsconfig-paths": "^4.3.2",
+    "vitest": "^1.6.0"
   }
 }

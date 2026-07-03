@@ -14,6 +14,7 @@ import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, For
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Loader2 } from "lucide-react"
+import GoogleButton from "@/components/GoogleButton"
 export default function SignIn() {
    
   const [username,setUsername] = useState("")
@@ -84,16 +85,22 @@ export default function SignIn() {
     }
   }
   return <>
-  <div className="flex justify-center  items-center min-h-screen bg-gray-100">
-    <div className="w-full mt-5 max-w-md p-8 space-y-8 bg-white rounded-lg shadow-md">
+  <div className="flex justify-center  items-center min-h-screen bg-muted dark:bg-muted">
+    <div className="w-full mt-5 max-w-md p-8 space-y-8 bg-card rounded-lg shadow-md">
       <div className="text-center">
         <h1 className="text-4xl font-extrabold tracking-tight lg:text-5xl mb-6">
-            Join Mystery Message
+            Join Candor
         </h1>
         <p className="mb-4">
-          Signup to start your anonymous adventure
+          Sign up to start receiving honest, anonymous feedback
         </p>
       </div>
+
+      <GoogleButton label="Sign up with Google" />
+      <div className="flex items-center gap-3 text-xs text-muted-foreground">
+        <span className="h-px flex-1 bg-muted" /> or <span className="h-px flex-1 bg-muted" />
+      </div>
+
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
         <FormField

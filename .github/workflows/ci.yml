@@ -1,0 +1,88 @@
+name: CI
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+
+# Cancel superseded runs on the same branch/PR to save CI minutes.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+# Least privilege — this workflow only needs to read the repo.
+permissions:
+  contents: read
+
+env:
+  NEXT_TELEMETRY_DISABLED: "1"
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    # Placeholder secrets so env validation (src/lib/env.ts) passes for BOTH the
+    # test and build steps — set at the job level so no step can forget them.
+    env:
+      MONGOOSE_URI: mongodb://localhost:27017/ci
+      NEXTAUTH_SECRET: ci-placeholder-secret
+      RESEND_API_KEY: ci-placeholder-key
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        # legacy-peer-deps: the react-email / ai stack ships optional peer deps
+        # (e.g. Svelte's sswr) that conflict harmlessly under npm 7+ strict mode.
+        # This mirrors the committed .npmrc so CI and local behave the same.
+        run: npm ci --legacy-peer-deps
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Test
+        run: npm test
+
+      - name: Build
+        run: npm run build
+
+  e2e:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci --legacy-peer-deps
+
+      - name: Install Playwright browser
+        run: npx playwright install --with-deps chromium
+
+      - name: Run E2E smoke tests
+        # The web server (build + start) receives its placeholder env from
+        # playwright.config.ts → webServer.env; GitHub sets CI=true automatically,
+        # which flips Playwright into retry/forbidOnly mode.
+        run: npm run test:e2e
+
+      - name: Upload Playwright report on failure
+        if: ${{ !cancelled() && failure() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: playwright-report/
+          retention-days: 7

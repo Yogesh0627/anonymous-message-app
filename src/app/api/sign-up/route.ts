@@ -3,11 +3,32 @@ import UserModel from "@/models/user"
 import { NextRequest, NextResponse } from "next/server"
 import bcrypt from 'bcryptjs'
 import { sendVerificationEmail } from "@/helpers/sendVerificationEmail"
-
-connectDB()
+import { enforceRateLimit } from "@/lib/rateLimit"
+import { getAppSettings } from "@/models/appSettings"
 
 export async function POST(request:NextRequest) {
+    // Limit sign-up attempts to curb email-sending abuse.
+    const limited = await enforceRateLimit(request, "sign-up", { limit: 5, windowMs: 60 * 60_000 })
+    if (limited) return limited
+
     try {
+        await connectDB()
+
+        // Respect the admin feature flags.
+        const settings = await getAppSettings()
+        if (settings.maintenanceMode) {
+            return NextResponse.json(
+                { success: false, message: "The app is under maintenance. Please try again shortly." },
+                { status: 503 }
+            )
+        }
+        if (!settings.registrationOpen) {
+            return NextResponse.json(
+                { success: false, message: "Registration is currently closed." },
+                { status: 403 }
+            )
+        }
+
         const body = await request.json()
         // console.log("body from signup",body)
         const {username,email,password} = body
