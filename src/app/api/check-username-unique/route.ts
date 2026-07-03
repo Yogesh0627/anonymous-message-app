@@ -4,6 +4,7 @@ import UserModel from "@/models/user";
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 
+export const dynamic = "force-dynamic";
 
 const usernameQuerySchema = z.object({username:usernameValidation})
 
