@@ -97,12 +97,12 @@ const MessageCard = ({ message, onMessageDelete }: Props) => {
     <div className="flex flex-col rounded-lg border bg-card p-4 shadow-sm transition-shadow hover:shadow-md">
       <p className="whitespace-pre-wrap break-words text-foreground">{message.content}</p>
 
-      <div className="mt-3 flex items-center justify-between border-t pt-3">
+      <div className="mt-3 flex flex-wrap items-center justify-between gap-2 border-t pt-3">
         <span className="text-xs text-muted-foreground">
           {dayjs(message.createdAt).format('MMM D, YYYY · h:mm A')}
         </span>
 
-        <div className="flex items-center gap-1">
+        <div className="ml-auto flex items-center gap-1">
           <Button
             variant="ghost"
             size="sm"

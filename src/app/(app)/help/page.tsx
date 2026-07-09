@@ -1,4 +1,5 @@
 import { MessageSquare, Sparkles, TrendingUp, Coins } from 'lucide-react'
+import TourButton from '@/components/TourButton'
 
 const STEPS = [
   {
@@ -46,6 +47,9 @@ export default function HelpPage() {
         <p className="mt-1 text-sm text-muted-foreground">
           Turn anonymous feedback into real, measurable growth.
         </p>
+        <div className="mt-3">
+          <TourButton />
+        </div>
       </div>
 
       <div className="mb-6 grid gap-3 sm:grid-cols-2">

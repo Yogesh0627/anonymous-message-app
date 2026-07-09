@@ -1,106 +1,113 @@
 'use client'
 import Link from 'next/link'
-import { usePathname } from 'next/navigation'
+import { useSearchParams } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import { signOut, useSession } from 'next-auth/react'
+import axios from 'axios'
 import {
   ChevronLeft,
   ChevronRight,
-  HelpCircle,
   LayoutDashboard,
-  LogOut,
-  type LucideIcon,
-  MessageSquare,
+  Users,
+  ShieldAlert,
   Map,
-  Shield,
-  Sparkles,
-  User as UserIcon,
+  Settings,
+  ScrollText,
+  ArrowLeft,
+  LogOut,
   X,
+  type LucideIcon,
 } from 'lucide-react'
 import { SimpleTooltip } from './ui/tooltip'
 import ThemeToggle from './ThemeToggle'
 import { useMobileNav } from './MobileNav'
 
-const NAV: { href: string; label: string; icon: LucideIcon }[] = [
-  { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
-  { href: '/coach', label: 'Coach', icon: Sparkles },
-  { href: '/feedback', label: 'Feedback', icon: MessageSquare },
-  { href: '/help', label: 'Help', icon: HelpCircle },
-  { href: '/roadmap', label: 'Roadmap', icon: Map },
-  { href: '/profile', label: 'Profile', icon: UserIcon },
+// Sections map to the ?tab= query on /admin, mirroring the single-page console.
+const NAV: { tab: string; label: string; icon: LucideIcon }[] = [
+  { tab: 'Overview', label: 'Overview', icon: LayoutDashboard },
+  { tab: 'Users', label: 'Users', icon: Users },
+  { tab: 'Moderation', label: 'Moderation', icon: ShieldAlert },
+  { tab: 'Roadmap', label: 'Roadmap', icon: Map },
+  { tab: 'Settings', label: 'Settings', icon: Settings },
+  { tab: 'Audit', label: 'Audit', icon: ScrollText },
 ]
 
-export default function Sidebar() {
-  const pathname = usePathname()
+export default function AdminSidebar() {
+  const params = useSearchParams()
+  const active = params.get('tab') ?? 'Overview'
   const { data: session } = useSession()
-  const isAdmin = (session?.user as { role?: string } | undefined)?.role === 'admin'
   const { open, setOpen } = useMobileNav()
-
   const [collapsed, setCollapsed] = useState(false)
+  const [pendingFlags, setPendingFlags] = useState(0)
 
-  // Remember the collapsed preference across visits.
   useEffect(() => {
-    setCollapsed(localStorage.getItem('candor:sidebar') === 'collapsed')
+    setCollapsed(localStorage.getItem('candor:adminsidebar') === 'collapsed')
+  }, [])
+  useEffect(() => {
+    axios
+      .get('/api/admin/stats')
+      .then((r) => setPendingFlags(r.data?.stats?.pendingFlags ?? 0))
+      .catch(() => {})
   }, [])
 
-  // Close the mobile drawer whenever the route changes.
+  // Close the mobile drawer when the active tab changes.
   useEffect(() => {
     setOpen(false)
-  }, [pathname, setOpen])
+  }, [active, setOpen])
 
   const toggle = () => {
     setCollapsed((c) => {
       const next = !c
-      localStorage.setItem('candor:sidebar', next ? 'collapsed' : 'expanded')
+      localStorage.setItem('candor:adminsidebar', next ? 'collapsed' : 'expanded')
       return next
     })
   }
 
-  const isActive = (href: string) => pathname === href || pathname.startsWith(`${href}/`)
-
-  // `collapsed` only applies to the desktop rail; the mobile drawer is always
-  // expanded. `onNavigate` closes the drawer after a tap on mobile.
   const item = (
-    href: string,
-    label: string,
-    Icon: LucideIcon,
-    activeClass: string,
+    { tab, label, icon: Icon }: (typeof NAV)[number],
     isCollapsed: boolean,
     onNavigate?: () => void,
   ) => {
+    const isActive = active === tab
+    const badge = tab === 'Moderation' && pendingFlags > 0
     const link = (
       <Link
-        href={href}
+        href={`/admin?tab=${tab}`}
         onClick={onNavigate}
         className={`flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors ${
-          isActive(href)
-            ? activeClass
-            : 'text-muted-foreground hover:bg-muted dark:text-muted-foreground dark:hover:bg-muted'
+          isActive
+            ? 'bg-brand/10 font-medium text-brand dark:bg-brand/15'
+            : 'text-muted-foreground hover:bg-muted hover:text-foreground'
         }`}
       >
         <Icon className="h-5 w-5 shrink-0" />
-        {!isCollapsed && <span>{label}</span>}
+        {!isCollapsed && <span className="flex-1">{label}</span>}
+        {!isCollapsed && badge && (
+          <span className="rounded-full bg-rose-500 px-1.5 text-xs font-medium text-white">
+            {pendingFlags}
+          </span>
+        )}
+        {isCollapsed && badge && (
+          <span className="absolute right-1 top-1 h-2 w-2 rounded-full bg-rose-500" />
+        )}
       </Link>
     )
     return isCollapsed ? (
-      <SimpleTooltip key={href} label={label} side="right">
-        {link}
+      <SimpleTooltip key={tab} label={label} side="right">
+        <div className="relative">{link}</div>
       </SimpleTooltip>
     ) : (
-      <div key={href}>{link}</div>
+      <div key={tab}>{link}</div>
     )
   }
 
-  // Shared inner content for both the desktop rail and the mobile drawer.
   const content = (isCollapsed: boolean, onNavigate?: () => void) => (
     <>
       <div className="flex items-center justify-between p-4">
         {!isCollapsed && (
-          <Link href="/dashboard" onClick={onNavigate} className="leading-tight">
+          <Link href="/admin" onClick={onNavigate} className="leading-tight">
             <div className="text-lg font-bold text-foreground">Candor</div>
-            <div className="text-[10px] text-muted-foreground dark:text-muted-foreground">
-              Honest feedback, real growth
-            </div>
+            <div className="text-[10px] uppercase tracking-wide text-brand">Admin console</div>
           </Link>
         )}
         {onNavigate ? (
@@ -124,21 +131,34 @@ export default function Sidebar() {
         )}
       </div>
 
-      <nav className="flex-1 space-y-1 px-2">
-        {NAV.map((n) =>
-          item(n.href, n.label, n.icon, 'bg-brand/10 font-medium text-brand dark:bg-brand/15 dark:text-brand', isCollapsed, onNavigate),
-        )}
-      </nav>
+      <nav className="flex-1 space-y-1 px-2">{NAV.map((n) => item(n, isCollapsed, onNavigate))}</nav>
 
       <div className="space-y-2 border-t p-2">
         <ThemeToggle collapsed={isCollapsed} />
-        {isAdmin &&
-          item('/admin', 'Admin Dashboard', Shield, 'bg-amber-50 font-medium text-amber-700 dark:bg-amber-500/15 dark:text-amber-300', isCollapsed, onNavigate)}
+        {(() => {
+          const back = (
+            <Link
+              href="/dashboard"
+              onClick={onNavigate}
+              className="flex w-full items-center gap-3 rounded-md px-3 py-2 text-sm text-muted-foreground hover:bg-muted hover:text-foreground"
+            >
+              <ArrowLeft className="h-5 w-5 shrink-0" />
+              {!isCollapsed && <span>Back to app</span>}
+            </Link>
+          )
+          return isCollapsed ? (
+            <SimpleTooltip label="Back to app" side="right">
+              {back}
+            </SimpleTooltip>
+          ) : (
+            back
+          )
+        })()}
         {(() => {
           const signOutBtn = (
             <button
               onClick={() => signOut()}
-              className="flex w-full items-center gap-3 rounded-md px-3 py-2 text-sm text-muted-foreground hover:bg-muted dark:text-muted-foreground dark:hover:bg-muted"
+              className="flex w-full items-center gap-3 rounded-md px-3 py-2 text-sm text-muted-foreground hover:bg-muted hover:text-foreground"
             >
               <LogOut className="h-5 w-5 shrink-0" />
               {!isCollapsed && <span>Sign out</span>}
@@ -153,7 +173,7 @@ export default function Sidebar() {
           )
         })()}
         {!isCollapsed && session?.user && (
-          <div className="truncate px-3 pt-1 text-xs text-muted-foreground dark:text-muted-foreground">
+          <div className="truncate px-3 pt-1 text-xs text-muted-foreground">
             {session.user.username || session.user.email}
           </div>
         )}

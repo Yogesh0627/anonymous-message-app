@@ -1,5 +1,6 @@
 'use client'
-import { useCallback, useEffect, useState } from 'react'
+import { Suspense, useCallback, useEffect, useState } from 'react'
+import { useSearchParams } from 'next/navigation'
 import axios from 'axios'
 import dayjs from 'dayjs'
 import { Button } from '@/components/ui/button'
@@ -13,6 +14,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { useToast } from '@/components/ui/use-toast'
+import { Pager, paginate } from '@/components/Pager'
 
 type Stats = {
   totalUsers: number
@@ -52,7 +54,6 @@ type Audit = {
   targetId: string
   createdAt: string
 }
-
 type RoadmapItem = {
   _id: string
   title: string
@@ -62,8 +63,16 @@ type RoadmapItem = {
   isPublic: boolean
 }
 
-const TABS = ['Overview', 'Users', 'Moderation', 'Roadmap', 'Settings', 'Audit'] as const
-type Tab = (typeof TABS)[number]
+const PAGE_SIZE = 10
+
+const HEADINGS: Record<string, { title: string; sub: string }> = {
+  Overview: { title: 'Overview', sub: 'Platform health at a glance.' },
+  Users: { title: 'User management', sub: 'Search, verify, ban, and adjust credits.' },
+  Moderation: { title: 'Moderation queue', sub: 'Review messages the AI flagged.' },
+  Roadmap: { title: 'Roadmap editor', sub: 'Curate the public product roadmap.' },
+  Settings: { title: 'App settings', sub: 'Registration, AI, and maintenance flags.' },
+  Audit: { title: 'Audit log', sub: 'A trail of every admin action.' },
+}
 
 const StatCard = ({ label, value }: { label: string; value: number }) => (
   <div className="rounded-lg border bg-card p-4">
@@ -72,16 +81,19 @@ const StatCard = ({ label, value }: { label: string; value: number }) => (
   </div>
 )
 
-export default function AdminPage() {
-  const [tab, setTab] = useState<Tab>('Overview')
+function AdminConsole() {
+  const params = useSearchParams()
+  const tab = params.get('tab') ?? 'Overview'
   const { toast } = useToast()
 
   const [stats, setStats] = useState<Stats | null>(null)
   const [users, setUsers] = useState<AdminUserRow[]>([])
   const [query, setQuery] = useState('')
+  const [usersPage, setUsersPage] = useState(1)
   const [flagged, setFlagged] = useState<Flagged[]>([])
   const [settings, setSettings] = useState<Settings | null>(null)
   const [audit, setAudit] = useState<Audit[]>([])
+  const [auditPage, setAuditPage] = useState(1)
   const [roadmap, setRoadmap] = useState<RoadmapItem[]>([])
   const [newItem, setNewItem] = useState({
     title: '',
@@ -97,6 +109,7 @@ export default function AdminPage() {
   const loadUsers = useCallback(async (q = '') => {
     const res = await axios.get(`/api/admin/users?q=${encodeURIComponent(q)}`)
     setUsers(res.data.users ?? [])
+    setUsersPage(1)
   }, [])
   const loadFlagged = useCallback(async () => {
     const res = await axios.get('/api/admin/moderation')
@@ -109,6 +122,7 @@ export default function AdminPage() {
   const loadAudit = useCallback(async () => {
     const res = await axios.get('/api/admin/audit')
     setAudit(res.data.entries ?? [])
+    setAuditPage(1)
   }, [])
   const loadRoadmap = useCallback(async () => {
     const res = await axios.get('/api/admin/roadmap')
@@ -194,27 +208,13 @@ export default function AdminPage() {
     }
   }
 
-  return (
-    <div className="mx-auto my-8 w-full max-w-6xl px-4">
-      <h1 className="mb-4 text-3xl font-bold">Admin Console</h1>
+  const heading = HEADINGS[tab] ?? HEADINGS.Overview
 
-      <div className="mb-6 flex flex-wrap gap-2 border-b">
-        {TABS.map((t) => (
-          <button
-            key={t}
-            onClick={() => setTab(t)}
-            className={`px-3 py-2 text-sm ${
-              tab === t ? 'border-b-2 border-brand font-medium text-brand' : 'text-muted-foreground'
-            }`}
-          >
-            {t}
-            {t === 'Moderation' && stats?.pendingFlags ? (
-              <span className="ml-1 rounded-full bg-rose-500 px-1.5 text-xs text-white">
-                {stats.pendingFlags}
-              </span>
-            ) : null}
-          </button>
-        ))}
+  return (
+    <div className="mx-auto w-full max-w-6xl p-6 md:p-8">
+      <div className="mb-6">
+        <h1 className="text-2xl font-bold text-foreground">{heading.title}</h1>
+        <p className="text-sm text-muted-foreground">{heading.sub}</p>
       </div>
 
       {tab === 'Overview' && stats && (
@@ -254,7 +254,7 @@ export default function AdminPage() {
                 </tr>
               </thead>
               <tbody>
-                {users.map((u) => (
+                {paginate(users, usersPage, PAGE_SIZE).map((u) => (
                   <tr key={u._id} className="border-t">
                     <td className="p-2">
                       <div className="font-medium">{u.username}</div>
@@ -302,9 +302,17 @@ export default function AdminPage() {
                     </td>
                   </tr>
                 ))}
+                {users.length === 0 && (
+                  <tr>
+                    <td colSpan={6} className="p-4 text-center text-sm text-muted-foreground">
+                      No users found.
+                    </td>
+                  </tr>
+                )}
               </tbody>
             </table>
           </div>
+          <Pager page={usersPage} total={users.length} pageSize={PAGE_SIZE} onPage={setUsersPage} label="users" />
         </div>
       )}
 
@@ -445,31 +453,49 @@ export default function AdminPage() {
       )}
 
       {tab === 'Audit' && (
-        <div className="overflow-x-auto rounded-lg border bg-card">
-          <table className="w-full text-sm">
-            <thead className="bg-muted text-left text-xs uppercase text-muted-foreground">
-              <tr>
-                <th className="p-2">When</th>
-                <th className="p-2">Admin</th>
-                <th className="p-2">Action</th>
-                <th className="p-2">Target</th>
-              </tr>
-            </thead>
-            <tbody>
-              {audit.map((a) => (
-                <tr key={a._id} className="border-t">
-                  <td className="p-2 text-muted-foreground">{dayjs(a.createdAt).format('MMM D, h:mm A')}</td>
-                  <td className="p-2">{a.adminUsername}</td>
-                  <td className="p-2 font-medium">{a.action}</td>
-                  <td className="p-2 text-xs text-muted-foreground">
-                    {a.targetType}:{a.targetId.slice(-6)}
-                  </td>
+        <div>
+          <div className="overflow-x-auto rounded-lg border bg-card">
+            <table className="w-full text-sm">
+              <thead className="bg-muted text-left text-xs uppercase text-muted-foreground">
+                <tr>
+                  <th className="p-2">When</th>
+                  <th className="p-2">Admin</th>
+                  <th className="p-2">Action</th>
+                  <th className="p-2">Target</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {paginate(audit, auditPage, PAGE_SIZE).map((a) => (
+                  <tr key={a._id} className="border-t">
+                    <td className="p-2 text-muted-foreground">{dayjs(a.createdAt).format('MMM D, h:mm A')}</td>
+                    <td className="p-2">{a.adminUsername}</td>
+                    <td className="p-2 font-medium">{a.action}</td>
+                    <td className="p-2 text-xs text-muted-foreground">
+                      {a.targetType}:{a.targetId.slice(-6)}
+                    </td>
+                  </tr>
+                ))}
+                {audit.length === 0 && (
+                  <tr>
+                    <td colSpan={4} className="p-4 text-center text-sm text-muted-foreground">
+                      No audit entries yet.
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+          <Pager page={auditPage} total={audit.length} pageSize={PAGE_SIZE} onPage={setAuditPage} label="entries" />
         </div>
       )}
     </div>
+  )
+}
+
+export default function AdminPage() {
+  return (
+    <Suspense fallback={<div className="p-8 text-sm text-muted-foreground">Loading…</div>}>
+      <AdminConsole />
+    </Suspense>
   )
 }

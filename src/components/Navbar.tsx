@@ -9,7 +9,7 @@ import { User } from 'next-auth'
 type Props = {}
 
 // Authenticated app sections use the Sidebar instead of this top Navbar.
-const APP_ROUTES = ['/dashboard', '/coach', '/feedback', '/help', '/profile', '/roadmap']
+const APP_ROUTES = ['/dashboard', '/coach', '/feedback', '/help', '/profile', '/roadmap', '/admin']
 
 const Navbar = (props: Props) => {
 

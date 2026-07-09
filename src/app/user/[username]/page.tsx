@@ -76,8 +76,8 @@ const UserPage = ({ params }: { params: { username: string } }) =>{
     }
   };
   return (
-    <div className="container mx-auto my-8 p-6 bg-card rounded max-w-4xl">
-    <h1 className="text-4xl font-bold mb-6 text-center">
+    <div className="container mx-auto my-8 p-4 sm:p-6 bg-card rounded max-w-4xl">
+    <h1 className="text-2xl sm:text-4xl font-bold mb-6 text-center">
       Public Profile Link
     </h1>
 
@@ -163,7 +163,7 @@ const UserPage = ({ params }: { params: { username: string } }) =>{
               <Button
                 key={index}
                 variant="outline"
-                className="mb-2"
+                className="mb-2 h-auto whitespace-normal py-2 text-left"
                 onClick={() => form.setValue("content", message, { shouldValidate: true })}
               >
                 {message}

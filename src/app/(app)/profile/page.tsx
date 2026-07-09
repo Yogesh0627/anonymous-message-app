@@ -172,17 +172,18 @@ const ProfilePage = () => {
                     if (e.key === 'Escape') setEditing(false)
                   }}
                   maxLength={15}
-                  className="w-52 rounded-md border bg-background px-2 py-1 text-lg font-semibold text-foreground focus:outline-none focus:ring-2 focus:ring-brand"
+                  className="w-full min-w-0 rounded-md border bg-background px-2 py-1 text-lg font-semibold text-foreground focus:outline-none focus:ring-2 focus:ring-brand"
                   placeholder="username"
                 />
                 <Button
                   size="sm"
+                  className="shrink-0"
                   onClick={saveUsername}
                   disabled={saving || avail === 'taken' || avail === 'invalid' || avail === 'checking'}
                 >
                   {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
                 </Button>
-                <Button size="sm" variant="outline" onClick={() => setEditing(false)} disabled={saving}>
+                <Button size="sm" variant="outline" className="shrink-0" onClick={() => setEditing(false)} disabled={saving}>
                   <X className="h-4 w-4" />
                 </Button>
               </div>

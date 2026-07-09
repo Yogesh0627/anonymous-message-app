@@ -154,7 +154,7 @@ const FeedbackInbox = () => {
 
   return (
     <div className="mx-auto w-full max-w-5xl p-6 md:p-8">
-      <div className="mb-6 flex items-center gap-3">
+      <div className="mb-6 flex flex-wrap items-center gap-3">
         <h1 className="text-3xl font-bold text-foreground">Feedback Inbox</h1>
         <span
           className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium ${
@@ -175,7 +175,7 @@ const FeedbackInbox = () => {
             disabled
             className="w-full rounded-md border bg-muted p-2 text-sm text-muted-foreground"
           />
-          <Button onClick={copyToClipboard} size="sm">
+          <Button onClick={copyToClipboard} size="sm" className="shrink-0">
             <Copy className="mr-2 h-4 w-4" /> Copy
           </Button>
         </div>

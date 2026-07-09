@@ -88,7 +88,7 @@ const CreditsWidget = ({ refreshKey }: { refreshKey: number }) => {
             <div className="text-xs text-muted-foreground">Earn by giving & acting on feedback</div>
           </div>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           {BUNDLES.map((b) => (
             <SimpleTooltip key={b.id} label={`Spend ${b.cost} credits`}>
               <Button

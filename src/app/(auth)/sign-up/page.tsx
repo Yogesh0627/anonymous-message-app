@@ -85,8 +85,8 @@ export default function SignIn() {
     }
   }
   return <>
-  <div className="flex justify-center  items-center min-h-screen bg-muted dark:bg-muted">
-    <div className="w-full mt-5 max-w-md p-8 space-y-8 bg-card rounded-lg shadow-md">
+  <div className="flex justify-center  items-center min-h-screen bg-muted dark:bg-muted p-4">
+    <div className="w-full mt-5 max-w-md p-6 sm:p-8 space-y-8 bg-card rounded-lg shadow-md">
       <div className="text-center">
         <h1 className="text-4xl font-extrabold tracking-tight lg:text-5xl mb-6">
             Join Candor
