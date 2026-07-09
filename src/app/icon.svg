@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" role="img" aria-label="Candor">
+  <title>Candor</title>
+  <defs>
+    <!-- Same 135° backdrop as the OG card (src/app/opengraph-image.tsx):
+         slate-900 -> indigo-950. Indigo is the accent here, never the flood. -->
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#0f172a" />
+      <stop offset="1" stop-color="#1e1b4b" />
+    </linearGradient>
+    <!-- White -> indigo-300, mirroring the OG headline. Starting at white keeps
+         the mark crisp once it rasterises down to 16px. -->
+    <linearGradient id="mark" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#ffffff" />
+      <stop offset="1" stop-color="#a5b4fc" />
+    </linearGradient>
+  </defs>
+
+  <rect width="100" height="100" rx="22" fill="url(#bg)" />
+
+  <!-- Geometric "C": a 280° arc with round caps. The stroke is deliberately heavy
+       (15/100) so the counter stays open at favicon sizes. -->
+  <path
+    d="M 68.77 34.25 A 24.5 24.5 0 1 0 68.77 65.75"
+    fill="none"
+    stroke="url(#mark)"
+    stroke-width="15"
+    stroke-linecap="round"
+  />
+</svg>

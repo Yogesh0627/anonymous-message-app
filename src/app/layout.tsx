@@ -53,7 +53,15 @@ export const metadata: Metadata = {
     title: "Candor — Honest feedback, real growth",
     description: "Anonymous feedback, turned into an AI growth plan you can actually act on.",
   },
-  icons: { icon: "/favicon.ico" },
+  // favicon.ico (16/32/48) for legacy chrome, icon.svg for crisp scaling on
+  // modern browsers, apple-icon.png for iOS home-screen bookmarks.
+  icons: {
+    icon: [
+      { url: "/icon.svg", type: "image/svg+xml" },
+      { url: "/favicon.ico", sizes: "16x16 32x32 48x48" },
+    ],
+    apple: "/apple-icon.png",
+  }
 };
 
 export default function RootLayout({
