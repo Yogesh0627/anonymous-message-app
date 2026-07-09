@@ -1,5 +1,5 @@
 'use client'
-import { createContext, useCallback, useContext, useState } from 'react'
+import { createContext, useCallback, useContext, useEffect, useState } from 'react'
 
 // Shared open/close state for the mobile navigation drawer. The hamburger lives
 // in the Topbar while the drawer itself lives in the Sidebar, so the state is
@@ -15,6 +15,17 @@ const MobileNavContext = createContext<MobileNavContextValue | null>(null)
 export function MobileNavProvider({ children }: { children: React.ReactNode }) {
   const [open, setOpen] = useState(false)
   const toggle = useCallback(() => setOpen((o) => !o), [])
+
+  // The drawer only exists below `md`. If the viewport grows while it's open,
+  // close it — otherwise its scroll lock would stay applied to a desktop page.
+  useEffect(() => {
+    const desktop = window.matchMedia('(min-width: 768px)')
+    const sync = () => desktop.matches && setOpen(false)
+    sync()
+    desktop.addEventListener('change', sync)
+    return () => desktop.removeEventListener('change', sync)
+  }, [])
+
   return (
     <MobileNavContext.Provider value={{ open, setOpen, toggle }}>
       {children}

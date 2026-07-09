@@ -34,13 +34,13 @@ const Navbar = (props: Props) => {
                         <span className="mr-4">Welcome, {user?.username || user?.email}</span>
                         {(user as any)?.role === 'admin' && (
                             <Link href={"/admin"} className="mr-4">
-                                <Button className="w-full md:w-auto bg-white text-slate-900 hover:bg-slate-200" variant='outline'>Admin</Button>
+                                <Button className="w-full md:w-auto bg-white text-slate-900 hover:bg-slate-200 hover:text-slate-900" variant='outline'>Admin</Button>
                             </Link>
                         )}
-                        <Button  className="w-full md:w-auto bg-white text-slate-900 hover:bg-slate-200" variant='outline' onClick={()=>{signOut()}}>Sign out</Button>
+                        <Button  className="w-full md:w-auto bg-white text-slate-900 hover:bg-slate-200 hover:text-slate-900" variant='outline' onClick={()=>{signOut()}}>Sign out</Button>
                     </>
                 ):(
-                    <Link href={"/sign-in"}><Button className="w-full md:w-auto bg-white text-slate-900 hover:bg-slate-200" variant={'outline'}>Sign in</Button></Link>
+                    <Link href={"/sign-in"}><Button className="w-full md:w-auto bg-white text-slate-900 hover:bg-slate-200 hover:text-slate-900" variant={'outline'}>Sign in</Button></Link>
                 )
             }
         </div>

@@ -2,6 +2,7 @@ import UserModel from './../../../models/user';
 import { connectDB } from "@/dbConfig/db";
 import { NextRequest, NextResponse } from "next/server";
 import { enforceRateLimit } from "@/lib/rateLimit";
+import { isOtpUnexpired, verifyOtp } from "@/lib/otp";
 
 export async function POST(request:NextRequest){
 
@@ -21,24 +22,31 @@ export async function POST(request:NextRequest){
         const user = await UserModel.findOne({username})
 
         if(!user){
-            return NextResponse.json({success:false,msg:"User not found"},{status:404})
+            return NextResponse.json({success:false,message:"User not found"},{status:404})
         }
 
-        const isCodeSame = user.verificationCode === code
-        const isCodeValid = new Date(user.verificationCodeExpiry) > new Date()
-    
+        if (user.isVerified) {
+            return NextResponse.json({success:true, message:"User already verified"},{status:200})
+        }
+
+        // Constant-time compare against the stored hash; an already-consumed
+        // code has been cleared, so it can never validate again.
+        const isCodeValid = isOtpUnexpired(user.verificationCodeExpiry)
+        const isCodeSame = await verifyOtp(code, user.verificationCode)
+
         if(isCodeSame && isCodeValid){
             user.isVerified = true
+            // Single-use: burn the code so it cannot be replayed.
+            user.verificationCode = ""
+            user.verificationCodeExpiry = new Date(0)
             await user.save()
 
-            return NextResponse.json({success:true, message:"User Verified"},{status:202})
+            return NextResponse.json({success:true, message:"User Verified"},{status:200})
         }
-        else if(!isCodeValid){
-            return NextResponse.json({success:false, message:"Code Expired try again after signup again"},{status:202})
+        if(!isCodeValid){
+            return NextResponse.json({success:false, message:"Code expired — please sign up again to get a new code"},{status:410})
         }
-        else{
-            return NextResponse.json({success:false, message:"Wrong OTP code"},{status:202})
-        }
+        return NextResponse.json({success:false, message:"Wrong OTP code"},{status:400})
     } catch (error:any) {
         // console.log("Error from verifyCode",error.message)
         return NextResponse.json({success:false,message:"Error while verifying user"},{status:500})

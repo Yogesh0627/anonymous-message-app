@@ -44,6 +44,25 @@ describe("consumeAiQuota", () => {
   })
 })
 
+describe("grantAiBonus", () => {
+  // Regression: grantAiBonus used to be a read-modify-write (get, add, set).
+  // Concurrent grants all read the same base and the last write won, so a user
+  // could spend credits and not receive the bonus. It now uses an atomic incrBy.
+  it("does not lose updates when grants race", async () => {
+    process.env.DAILY_AI_CALLS = "1"
+    const user = "quota-race-user"
+
+    await Promise.all([
+      grantAiBonus(user, 10),
+      grantAiBonus(user, 10),
+      grantAiBonus(user, 10),
+    ])
+
+    // Read-modify-write would leave a bonus of 10 here, not 30.
+    expect((await getQuotaStatus(user)).bonus).toBe(30)
+  })
+})
+
 describe("getQuotaStatus", () => {
   it("reads usage without consuming, and reflects the bonus", async () => {
     process.env.DAILY_AI_CALLS = "5"

@@ -17,6 +17,15 @@ export interface KVStore {
   peek(key: string): Promise<number>
   get<T>(key: string): Promise<T | null>
   set<T>(key: string, value: T, ttlMs: number): Promise<void>
+  /**
+   * Atomically adds `amount` to a numeric key and returns the new value. The TTL
+   * is anchored to the first write and not extended by later increments.
+   *
+   * This exists so callers never have to do a read-modify-write (get, add, set),
+   * which loses updates under concurrency. Values are stored in the same JSON
+   * encoding `get`/`set` use, so the three are interchangeable on one key.
+   */
+  incrBy(key: string, amount: number, ttlMs: number): Promise<number>
 }
 
 class MemoryStore implements KVStore {
@@ -53,6 +62,21 @@ class MemoryStore implements KVStore {
 
   async set<T>(key: string, value: T, ttlMs: number): Promise<void> {
     this.kv.set(key, { value: JSON.stringify(value), expireAt: Date.now() + ttlMs })
+  }
+
+  async incrBy(key: string, amount: number, ttlMs: number): Promise<number> {
+    // Node is single-threaded and there is no `await` between the read and the
+    // write, so this whole method is atomic with respect to other callers.
+    const now = Date.now()
+    const existing = this.kv.get(key)
+    const live = existing && existing.expireAt > now
+    const current = live ? Number(JSON.parse(existing!.value)) : 0
+    const next = current + amount
+    this.kv.set(key, {
+      value: JSON.stringify(next),
+      expireAt: live ? existing!.expireAt : now + ttlMs,
+    })
+    return next
   }
 }
 
@@ -99,6 +123,16 @@ class UpstashStore implements KVStore {
 
   async set<T>(key: string, value: T, ttlMs: number): Promise<void> {
     await this.pipeline([["SET", key, JSON.stringify(value), "PX", ttlMs]])
+  }
+
+  async incrBy(key: string, amount: number, ttlMs: number): Promise<number> {
+    // INCRBY is atomic server-side, so concurrent grants cannot lose an update.
+    // PEXPIRE ... NX anchors the TTL to the first write only.
+    const [incrBy] = await this.pipeline([
+      ["INCRBY", key, amount],
+      ["PEXPIRE", key, ttlMs, "NX"],
+    ])
+    return Number(incrBy.result)
   }
 }
 

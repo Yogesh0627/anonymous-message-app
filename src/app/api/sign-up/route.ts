@@ -5,6 +5,7 @@ import bcrypt from 'bcryptjs'
 import { sendVerificationEmail } from "@/helpers/sendVerificationEmail"
 import { enforceRateLimit } from "@/lib/rateLimit"
 import { getAppSettings } from "@/models/appSettings"
+import { generateOtp, hashOtp } from "@/lib/otp"
 
 export async function POST(request:NextRequest) {
     // Limit sign-up attempts to curb email-sending abuse.
@@ -39,15 +40,17 @@ export async function POST(request:NextRequest) {
             return NextResponse.json({success:false,msg:"Username already taken"},{status:400})
         }
         const existingUserByEmail = await UserModel.findOne({email})
-        const verificationCode = Math.floor(100000+Math.random()*900000).toString()
+        // The plaintext code is emailed; only its hash is ever persisted.
+        const verificationCode = generateOtp()
+        const verificationCodeHash = await hashOtp(verificationCode)
         if(existingUserByEmail){
             if (existingUserByEmail.isVerified){
-                return NextResponse.json({success:false,message:"User Already Exist With This Email"},{status:401})
+                return NextResponse.json({success:false,message:"User Already Exist With This Email"},{status:409})
             }
             else {
                 const hashedPassword = await bcrypt.hash(password, 10);
                 existingUserByEmail.password = hashedPassword;
-                existingUserByEmail.verificationCode = verificationCode;
+                existingUserByEmail.verificationCode = verificationCodeHash;
                 existingUserByEmail.verificationCodeExpiry = new Date(Date.now() + 3600000);
                 await existingUserByEmail.save();
               }
@@ -62,7 +65,7 @@ export async function POST(request:NextRequest) {
                 username,
                 email,
                 password:hashedPassword,
-                verificationCode,
+                verificationCode:verificationCodeHash,
                 verificationCodeExpiry:expiryDate,
                 isVerified:false,
                 isAcceptingMessage:true,

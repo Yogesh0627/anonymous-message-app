@@ -295,11 +295,22 @@ After deploy, submit `https://your-domain/sitemap.xml` in Google Search Console.
 ## Security notes
 
 - Passwords are hashed with **bcrypt**; plaintext is never stored.
-- OTP and messaging endpoints are **rate-limited** ([`src/lib/rateLimit.ts`](src/lib/rateLimit.ts)); the shared store swaps to Upstash Redis for horizontal scaling with unchanged call sites.
+- **One-time codes** (email verification, password reset) are generated with a CSPRNG
+  (`crypto.randomInt`), **bcrypt-hashed at rest**, compared in constant time, and
+  **burned after a single use** ([`src/lib/otp.ts`](src/lib/otp.ts)). A database leak
+  exposes hashes, not live codes, and a consumed code can never be replayed.
+- OTP and messaging endpoints are **rate-limited** ([`src/lib/rateLimit.ts`](src/lib/rateLimit.ts));
+  this includes the password-reset `POST` that *consumes* the code, since a 6-digit
+  code is only 10⁶ wide. The shared store swaps to Upstash Redis for horizontal
+  scaling with unchanged call sites.
 - The **credit ledger is idempotent** — a unique index prevents double-award/double-spend under retries or races.
-- Incoming messages are **AI-moderated** before storage.
+- The **AI quota bonus is granted atomically** (`INCRBY`), so concurrent redemptions cannot lose an update.
+- Incoming messages are **AI-moderated** before storage. Moderation **fails open** by
+  design (availability over safety) and is backstopped by an admin review queue that
+  bans the sender when a flag is upheld.
 - **Environment variables are validated at startup**, so misconfiguration fails fast.
-- Admin actions are recorded in an **audit log**.
+- Admin actions are recorded in an **audit log**, and `/admin` is gated both in
+  middleware and independently on every admin route.
 
 ---
 

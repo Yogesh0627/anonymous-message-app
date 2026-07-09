@@ -1,5 +1,5 @@
 'use client'
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import {
   Sparkles,
   Share2,
@@ -13,6 +13,7 @@ import {
   type LucideIcon,
 } from 'lucide-react'
 import { Button } from './ui/button'
+import { useEscapeKey, useFocusTrap, useScrollLock } from '@/hooks/useModalA11y'
 
 const KEY = 'candor:onboarded'
 
@@ -54,6 +55,7 @@ export function startOnboardingTour() {
 export default function OnboardingTour() {
   const [open, setOpen] = useState(false)
   const [step, setStep] = useState(0)
+  const dialogRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     let timer: ReturnType<typeof setTimeout> | undefined
@@ -77,6 +79,12 @@ export default function OnboardingTour() {
     setOpen(false)
   }, [])
 
+  // Escape closes, Tab stays inside the panel, the page behind can't scroll.
+  // Hooks run unconditionally — they no-op while `open` is false.
+  useEscapeKey(open, finish)
+  useFocusTrap(dialogRef, open)
+  useScrollLock(open)
+
   if (!open) return null
 
   const isLast = step === STEPS.length - 1
@@ -89,7 +97,7 @@ export default function OnboardingTour() {
       aria-modal="true"
       aria-label="Product walkthrough"
     >
-      <div className="w-full max-w-md rounded-xl border bg-card p-6 shadow-2xl">
+      <div ref={dialogRef} className="w-full max-w-md rounded-xl border bg-card p-6 shadow-2xl">
         <div className="mb-4 flex items-start justify-between">
           <div className="flex h-11 w-11 items-center justify-center rounded-full bg-brand/10 text-brand">
             <Icon className="h-6 w-6" />

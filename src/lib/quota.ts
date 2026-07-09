@@ -58,10 +58,13 @@ export async function getQuotaStatus(userId: string): Promise<QuotaStatus> {
   return { used, base, bonus, limit, remaining: Math.max(0, limit - used) }
 }
 
-/** Grants extra AI calls for the rest of today (used by credit redemption). */
+/**
+ * Grants extra AI calls for the rest of today (used by credit redemption).
+ *
+ * Uses an atomic incrBy rather than a read-modify-write: two redemptions racing
+ * would otherwise both read the same base and one would clobber the other, so a
+ * user could spend credits and not receive the bonus (a lost update).
+ */
 export async function grantAiBonus(userId: string, amount: number): Promise<void> {
-  const store = getStore()
-  const key = `quota:bonus:${userId}:${dayKey()}`
-  const current = (await store.get<number>(key)) ?? 0
-  await store.set(key, current + amount, DAY_MS)
+  await getStore().incrBy(`quota:bonus:${userId}:${dayKey()}`, amount, DAY_MS)
 }

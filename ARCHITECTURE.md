@@ -293,11 +293,24 @@ Playwright job) on every push and PR.
 - **Validation:** every API route parses input with a Zod schema from
   `inputValidations/`; the same schemas back the client forms.
 - **Rate limiting:** messaging, sign-up, and OTP endpoints go through
-  `rateLimit.ts`. The limiter is backed by the pluggable store, so scaling to
+  `rateLimit.ts` — including the password-reset `POST`, which is the endpoint that
+  actually consumes the code. The limiter is backed by the pluggable store, so scaling to
   multiple instances is a config change (add Upstash), not a code change.
+- **One-time codes:** `otp.ts` is the single source of truth for email-verification
+  and password-reset codes — CSPRNG generation, bcrypt hashing at rest, constant-time
+  comparison, and single-use semantics (the stored hash and its expiry are both burned
+  on consumption, so a cleared code cannot be replayed).
+- **Atomicity:** credit awards are idempotent on a unique `(userId, reason, refId)`
+  index; the daily AI-quota bonus is granted with an atomic `incrBy` rather than a
+  read-modify-write, so concurrent redemptions cannot lose an update.
 - **Config safety:** `env.ts` validates all environment variables at startup — a
   misconfigured deploy fails immediately with a clear message instead of at
   request time.
+- **Accessibility:** Radix primitives supply roles and keyboard handling for the
+  select/tooltip/dialog components. Hand-rolled overlays (the onboarding tour, the
+  mobile nav drawer) use `hooks/useModalA11y.ts` for Escape-to-close, focus trapping,
+  focus restoration, and scroll lock. A closed drawer is `invisible`, not merely
+  translated off-screen, so its links leave the tab order.
 - **Theming & SEO:** one CSS-variable token system (incl. a `brand` token) drives
   light/dark; SEO ships `sitemap.ts`, `robots.ts`, JSON-LD, and an auto-generated
   OG image.

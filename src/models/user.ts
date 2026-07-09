@@ -80,13 +80,15 @@ const userSchema:Schema<User>= new Schema({
         trim:true,
         match:[/.+\@.+\..+/,"Please provide a valid email"]
     },
+    // Stores a bcrypt hash of the emailed code, never the code itself. Cleared to
+    // '' once consumed, which is why these cannot be `required` — an empty string
+    // fails Mongoose's required check. OAuth users never have one at all.
     verificationCode:{
         type:String,
-        required:[true,"Verify code is required for verification"]
+        default:''
     },
     verificationCodeExpiry:{
         type:Date,
-        required:[true,"Verification code expiry is required"]
     },
     forgotPasswordCode:{
         type:String,

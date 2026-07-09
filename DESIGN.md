@@ -151,13 +151,19 @@ A tiny interface so rate limiting + caching don't care about the backend:
 ```ts
 interface KVStore {
   incr(key: string, windowMs: number): Promise<{ count: number; resetAt: number }>
+  peek(key: string): Promise<number>
   get<T>(key: string): Promise<T | null>
   set<T>(key: string, value: T, ttlMs: number): Promise<void>
+  incrBy(key: string, amount: number, ttlMs: number): Promise<number>
 }
 ```
 - **UpstashStore** when `UPSTASH_REDIS_REST_URL` + `_TOKEN` are set.
 - **MemoryStore** fallback (current behavior) otherwise.
 - Selected once at module load; call sites are unchanged.
+- `incrBy` exists so callers never do a read-modify-write (`get` → add → `set`),
+  which loses updates under concurrency. It maps to Redis `INCRBY` and to a single
+  synchronous read-and-write in `MemoryStore`. `grantAiBonus` depends on it: two
+  redemptions racing must not let one clobber the other's bonus.
 
 ### 5.2 `lib/rateLimit.ts` — becomes async
 Refactor the existing sync limiter to `await store.incr(...)`. `enforceRateLimit`

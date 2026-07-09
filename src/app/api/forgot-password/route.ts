@@ -4,8 +4,17 @@ import { sendForgotPasswordEmail } from "@/helpers/sendForgotPasswordEmail";
 import UserModel from "@/models/user";
 import { NextRequest, NextResponse } from "next/server";
 import { enforceRateLimit } from "@/lib/rateLimit";
+import { generateOtp, hashOtp, isOtpUnexpired, verifyOtp } from "@/lib/otp";
+import { passwordValidation } from "@/inputValidations/passwordValidation";
+import { z } from "zod";
 
 export const dynamic = "force-dynamic"
+
+const resetSchema = z.object({
+    email: z.string().email(),
+    code: z.string().length(6, "Reset code must be 6 digits"),
+    newPassword: passwordValidation,
+})
 
 export async function GET(request:NextRequest,response:NextResponse){
 
@@ -16,23 +25,23 @@ export async function GET(request:NextRequest,response:NextResponse){
     try {
         const {searchParams} = new URL(request.url)
         const myquery:string = searchParams.get("email") ||""
-        // console.log(myquery)
         const ifEmailExist = await UserModel.findOne({email:myquery})
-        // console.log(ifEmailExist)
         if (!ifEmailExist){
             return NextResponse.json({success:false,message:"User with this email not exist"},{status:404})
         }
 
-        const forgotPasswordCode = Math.floor(100000+Math.random()*900000).toString()
+        // Email the plaintext code; persist only its hash.
+        const forgotPasswordCode = generateOtp()
         const forgotPasswordExpiry = new Date()
         forgotPasswordExpiry.setHours(forgotPasswordExpiry.getHours() + 1)
 
-        const afterAddingForgotPasswordExpiry = await UserModel.findOneAndUpdate({email:myquery},{$set:{forgotPasswordExpiry:forgotPasswordExpiry,forgotPasswordCode:forgotPasswordCode}},{new:true})
-        // console.log(afterAddingForgotPasswordExpiry)
-        const afterEmail = await sendForgotPasswordEmail(myquery,ifEmailExist.username,forgotPasswordCode)
+        await UserModel.findOneAndUpdate(
+            {email:myquery},
+            {$set:{forgotPasswordExpiry, forgotPasswordCode: await hashOtp(forgotPasswordCode)}},
+        )
+        await sendForgotPasswordEmail(myquery,ifEmailExist.username,forgotPasswordCode)
         return NextResponse.json({success:true,message:"user exist with this email"},{status:200})
     } catch (error:any) {
-        // console.log("error from forgotPassword",error)
         return NextResponse.json({success:false,message:"Error while checking user"},{status:500})
     }
 }
@@ -40,37 +49,52 @@ export async function GET(request:NextRequest,response:NextResponse){
 
 export async function POST(request:NextRequest){
 
+    // This is the endpoint that CONSUMES the reset code, so it is the one that
+    // must be brute-force protected — a 6-digit code is only 10^6 wide.
+    const limited = await enforceRateLimit(request, "forgot-password-reset", {
+        limit: 5,
+        windowMs: 15 * 60_000,
+    })
+    if (limited) return limited
+
     await connectDB()
 
     try {
-        const body = await request.json()
-        const{newPassword,code,email} = body
-        // console.log(body , "body from fp")
+        const parsed = resetSchema.safeParse(await request.json().catch(() => null))
+        if (!parsed.success) {
+            return NextResponse.json(
+                {success:false, message: parsed.error.issues[0]?.message ?? "Invalid request"},
+                {status:400}
+            )
+        }
+        const {newPassword, code, email} = parsed.data
+
         const user = await UserModel.findOne({email})
 
         if(!user){
-            return NextResponse.json({success:false,msg:"User not found"},{status:404})
+            return NextResponse.json({success:false,message:"User not found"},{status:404})
         }
-        // console.log(user)
-        const isCodeSame = user.forgotPasswordCode === code
-        const isCodeValid = new Date(user.forgotPasswordExpiry) > new Date()
+
+        const isCodeValid = isOtpUnexpired(user.forgotPasswordExpiry)
+        const isCodeSame = await verifyOtp(code, user.forgotPasswordCode)
+
         if(isCodeSame && isCodeValid){
             const salt = await bcrypt.genSalt(10)
-            const hashedPassword = await bcrypt.hash(newPassword,salt)
-            
-            user.password = hashedPassword
-            user.forgotPasswordCode=""
-            
+            user.password = await bcrypt.hash(newPassword,salt)
+
+            // Single-use: burn BOTH the code and its expiry. Clearing only the code
+            // while leaving a future expiry would let an empty code replay the reset.
+            user.forgotPasswordCode = ""
+            user.forgotPasswordExpiry = new Date(0)
+
             await user.save()
 
-            return NextResponse.json({success:true, message:"Password Changed Successfully"},{status:202})
+            return NextResponse.json({success:true, message:"Password Changed Successfully"},{status:200})
         }
-        else if(!isCodeValid){
-            return NextResponse.json({success:false, message:"Code Expired try again after signup again"},{status:202})
+        if(!isCodeValid){
+            return NextResponse.json({success:false, message:"Code expired — request a new reset code"},{status:410})
         }
-        else{
-            return NextResponse.json({success:false, message:"Wrong OTP code"},{status:202})
-        }
+        return NextResponse.json({success:false, message:"Wrong OTP code"},{status:400})
     } catch (error) {
         console.log("error from forgotPassword",error)
         return NextResponse.json({success:false,message:"Error while registering New Password"},{status:500})    }

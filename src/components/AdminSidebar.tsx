@@ -1,7 +1,7 @@
 'use client'
 import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { signOut, useSession } from 'next-auth/react'
 import axios from 'axios'
 import {
@@ -21,6 +21,7 @@ import {
 import { SimpleTooltip } from './ui/tooltip'
 import ThemeToggle from './ThemeToggle'
 import { useMobileNav } from './MobileNav'
+import { useEscapeKey, useFocusTrap, useScrollLock } from '@/hooks/useModalA11y'
 
 // Sections map to the ?tab= query on /admin, mirroring the single-page console.
 const NAV: { tab: string; label: string; icon: LucideIcon }[] = [
@@ -37,6 +38,8 @@ export default function AdminSidebar() {
   const active = params.get('tab') ?? 'Overview'
   const { data: session } = useSession()
   const { open, setOpen } = useMobileNav()
+  const drawerRef = useRef<HTMLElement>(null)
+  const closeDrawer = useCallback(() => setOpen(false), [setOpen])
   const [collapsed, setCollapsed] = useState(false)
   const [pendingFlags, setPendingFlags] = useState(0)
 
@@ -54,6 +57,11 @@ export default function AdminSidebar() {
   useEffect(() => {
     setOpen(false)
   }, [active, setOpen])
+
+  // Drawer behaves like a modal dialog on mobile.
+  useEscapeKey(open, closeDrawer)
+  useFocusTrap(drawerRef, open)
+  useScrollLock(open)
 
   const toggle = () => {
     setCollapsed((c) => {
@@ -192,21 +200,31 @@ export default function AdminSidebar() {
         {content(collapsed)}
       </aside>
 
-      {/* Mobile off-canvas drawer */}
-      <div className={`md:hidden ${open ? '' : 'pointer-events-none'}`}>
+      {/* Mobile off-canvas drawer. `invisible` (not just translated off-screen)
+          keeps its links out of the tab order while closed; transitioning
+          visibility lets the slide-out animation finish first. */}
+      <div
+        className={`transition-[visibility] duration-200 md:hidden ${
+          open ? 'visible' : 'invisible pointer-events-none'
+        }`}
+      >
         <div
-          onClick={() => setOpen(false)}
+          onClick={closeDrawer}
           className={`fixed inset-0 z-40 bg-black/50 transition-opacity duration-200 ${
             open ? 'opacity-100' : 'opacity-0'
           }`}
           aria-hidden="true"
         />
         <aside
+          ref={drawerRef}
+          role="dialog"
+          aria-modal="true"
+          aria-label="Admin navigation"
           className={`fixed inset-y-0 left-0 z-50 flex w-64 max-w-[85vw] flex-col border-r bg-card shadow-xl transition-transform duration-200 ${
             open ? 'translate-x-0' : '-translate-x-full'
           }`}
         >
-          {content(false, () => setOpen(false))}
+          {content(false, closeDrawer)}
         </aside>
       </div>
     </>
