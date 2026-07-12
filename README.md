@@ -321,7 +321,7 @@ After deploy, submit `https://your-domain/sitemap.xml` in Google Search Console.
 | [`ARCHITECTURE.md`](ARCHITECTURE.md) | Request lifecycle, module-by-module map, core flows, and the rationale for every dependency |
 | [`DESIGN.md`](DESIGN.md) | Design doc for the AI features + the "AI at scale" infra (rate-limit / cache / quota) |
 | [`DEPLOYMENT.md`](DEPLOYMENT.md) | Full Vercel deploy guide — which keys/URLs to change after deploy, and where |
-| [`INTERVIEW.md`](INTERVIEW.md) | Q&A about the project from every angle — architecture, real-time, AI, scaling, trade-offs |
+
 
 ## Roadmap
 

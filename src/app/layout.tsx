@@ -47,11 +47,13 @@ export const metadata: Metadata = {
     siteName: "Candor",
     title: "Candor — Honest feedback, real growth",
     description: "Anonymous feedback, turned into an AI growth plan you can actually act on.",
+    images: [{ url: "/og-image.png" }],
   },
   twitter: {
     card: "summary_large_image",
     title: "Candor — Honest feedback, real growth",
     description: "Anonymous feedback, turned into an AI growth plan you can actually act on.",
+    images: ["/og-image.png"],
   },
   // favicon.ico (16/32/48) for legacy chrome, icon.svg for crisp scaling on
   // modern browsers, apple-icon.png for iOS home-screen bookmarks.

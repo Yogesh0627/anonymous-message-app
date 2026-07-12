@@ -40,7 +40,7 @@ smoke-level. See [§7 Current status & roadmap](#7-where-its-going--current-stat
 
 **Where to look first:** this file (`ARCHITECTURE.md`) for the whole system,
 [`DESIGN.md`](DESIGN.md) for the AI internals, [`DEPLOYMENT.md`](DEPLOYMENT.md) to
-ship it, [`INTERVIEW.md`](INTERVIEW.md) for the reasoning behind each decision.
+ship it
 
 ---
 
